@@ -21,7 +21,7 @@ distinguished_name = dn
 
 [dn]
 C = GB
-ST = London
+L = London
 O = Company
 CN = ${SUBJECT}
 EOF

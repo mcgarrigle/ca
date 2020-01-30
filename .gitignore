@@ -1,0 +1,8 @@
+private
+*.csr
+*.conf
+*.ext
+*.key
+*.crt
+*.pem
+*.srl
