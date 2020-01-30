@@ -1,13 +1,12 @@
 #!/bin/bash
 
-# tls-simple-cert.sh
+# make-cert.sh
 #
 # usage:
-# tls-simple-cert.sh <fqdn>
+# make-cert.sh <fqdn>
 #
 
-DOMAIN="$(cat domain)"
-SUBJECT="$1.${DOMAIN}"
+SUBJECT="$1"
 
 CONFIG="${SUBJECT}.conf"
 KEY="${SUBJECT}.key"

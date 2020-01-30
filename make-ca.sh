@@ -19,7 +19,8 @@ answers() {
 }
 
 # generate key with this
-
+#
+# mkdir private
 # openssl genrsa -out private/cakey.key 2048
 
 rm cacert.pem
