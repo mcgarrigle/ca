@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+
+import os
+import re
+import textwrap
+
+def undent(s):
+  return re.sub('\n +','\n',s.lstrip())
+
+def config(subject, sans):
+    names = list(enumerate(sans, 1))
+    dns = [f"DNS.{i} = {n}" for i,n in names if re.match("^\D", n)]
+    ips = [f"IP.{i} = {n}" for i,n in names if re.match("^\d", n)]
+    names = "\n".join(dns + ips)
+    t = undent(f"""
+        [req]
+        distinguished_name = dn
+        req_extensions = v3_req
+        default_bits = 2048
+        prompt = no
+        default_md = sha256
+        [dn]
+        C = UK
+        ST = England
+        L = London
+        O = example.com
+        emailAddress = hostmaster@example.com
+        CN = {subject}
+        [v3_req]
+        keyUsage = keyEncipherment, dataEncipherment
+        extendedKeyUsage = serverAuth
+        subjectAltName = @alt_names
+        [alt_names]
+        {names}""")
+    return t
+
+c = config("www.foo.com", ["foo.com", "home.foo.com", "10.0.0.1", "10.0.0.2"])
+print(c)
+with open('foo.cnf', 'w') as f:
+    f.write(c)
+
+os.system("openssl req -new -nodes -sha256 -key /etc/pki/tls/private/workshop.local.pem -config foo.cnf -out foo.csr")
+
+os.system("openssl x509 -req -in foo.csr -extfile foo.cnf -extensions v3_req -out foo.crt -CA cacert.pem -CAkey private/cakey.key -CAcreateserial -days 3650 -sha256")
