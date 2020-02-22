@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import sys
 import re
 import textwrap
 
@@ -36,6 +37,9 @@ def config(subject, sans):
     with open(f"{subject}.cnf", 'w') as f:
       f.write(text)
 
+def cmd(s):
+    os.system(undent(s))
+
 def key(subject):
     os.system(f"openssl genrsa -out {subject}.key 4096")
 
@@ -46,6 +50,8 @@ def csr(subject, sans):
 def sign(subject):
     os.system(f"openssl x509 -req -in {subject}.csr -extfile {subject}.cnf -extensions v3_req -out {subject}.crt -CA cacert.pem -CAkey private/cakey.key -CAcreateserial -days 3650 -sha256")
 
-key("www.foo.com")
-csr("www.foo.com", ["foo.com", "home.foo.com", "10.0.0.1", "10.0.0.2"])
-sign("www.foo.com")
+subject = sys.argv[1]
+names = sys.argv[2:]
+key(subject)
+csr(subject, names)
+sign(subject)
