@@ -3,16 +3,15 @@
 import os
 import sys
 import re
-import textwrap
 
 def undent(s):
   return re.sub('\n +','\n',s.lstrip())
 
-def config(subject, sans):
-    names = list(enumerate(sans, 1))
-    dns = [f"DNS.{i} = {n}" for i,n in names if re.match("^\D", n)]
-    ips = [f"IP.{i} = {n}" for i,n in names if re.match("^\d", n)]
-    names = "\n".join(dns + ips)
+def config(subject, names):
+    sans = list(enumerate(names, 1))
+    dns = [f"DNS.{i} = {n}" for i,n in sans if re.match("^\D", n)]
+    ips = [f"IP.{i} = {n}" for i,n in sans if re.match("^\d", n)]
+    block = "\n".join(dns + ips)
     text = undent(f"""
         [req]
         distinguished_name = dn
@@ -32,26 +31,35 @@ def config(subject, sans):
         extendedKeyUsage = serverAuth
         subjectAltName = @alt_names
         [alt_names]
-        {names}
+        {block}
         """)
     with open(f"{subject}.cnf", 'w') as f:
       f.write(text)
 
-def cmd(s):
-    os.system(undent(s))
-
 def key(subject):
     os.system(f"openssl genrsa -out {subject}.key 4096")
 
-def csr(subject, sans):
-    config(subject, sans)
-    os.system(f"openssl req -new -nodes -sha256 -key {subject}.key -config {subject}.cnf -out {subject}.csr")
+def csr(subject, names):
+    config(subject, names)
+    os.system("openssl req"
+             f" -new -nodes -sha256"
+             f" -key {subject}.key"
+             f" -config {subject}.cnf"
+             f" -out {subject}.csr")
 
 def sign(subject):
-    os.system(f"openssl x509 -req -in {subject}.csr -extfile {subject}.cnf -extensions v3_req -out {subject}.crt -CA cacert.pem -CAkey private/cakey.key -CAcreateserial -days 3650 -sha256")
+    os.system("openssl x509"
+             f" -req -days 3650 -sha256"
+             f" -in {subject}.csr"
+             f" -extfile {subject}.cnf"
+             f" -extensions v3_req"
+             f" -CA cacert.pem -CAkey private/cakey.key"
+             f" -CAcreateserial"
+             f" -out {subject}.crt")
 
 subject = sys.argv[1]
 names = sys.argv[2:]
+
 key(subject)
 csr(subject, names)
 sign(subject)
