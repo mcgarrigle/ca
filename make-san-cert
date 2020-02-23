@@ -4,10 +4,14 @@ import os
 import sys
 import re
 
+ROOT = os.path.dirname(os.path.realpath(__file__))
+
 def undent(s):
   return re.sub('\n +','\n',s.lstrip())
 
 def config(subject, names):
+    with open(os.path.join(ROOT, 'dn.conf'), 'r') as f:
+        dn = f.read()
     sans = list(enumerate(names, 1))
     dns = [f"DNS.{i} = {n}" for i,n in sans if re.match("^\D", n)]
     ips = [f"IP.{i} = {n}" for i,n in sans if re.match("^\d", n)]
@@ -17,14 +21,10 @@ def config(subject, names):
         distinguished_name = dn
         req_extensions = v3_req
         default_bits = 2048
-        prompt = no
         default_md = sha256
+        prompt = no
         [dn]
-        C = UK
-        ST = England
-        L = London
-        O = example.com
-        emailAddress = hostmaster@example.com
+        {dn}
         CN = {subject}
         [v3_req]
         keyUsage = keyEncipherment, dataEncipherment

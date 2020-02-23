@@ -1,7 +1,6 @@
 private
 *.csr
 *.cnf
-*.conf
 *.ext
 *.key
 *.crt
