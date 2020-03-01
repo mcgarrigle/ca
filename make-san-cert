@@ -16,10 +16,14 @@ class Config:
         self.names   = names
         self.is_san  = len(names) > 0
 
+    @staticmethod
+    def asn1(prefix, names):
+        names = list(enumerate(names, 1))
+        return [f"{prefix}.{i} = {n}" for i,n in names]
+
     def san(self):
-        names = list(enumerate(self.names, 1))
-        dns = [f"DNS.{i} = {n}" for i,n in names if re.match("^\D", n)]
-        ips = [f"IP.{i} = {n}" for i,n in names if re.match("^\d", n)]
+        dns = self.asn1("DNS", [n for n in names if re.match("^\D+\.", n)])
+        ips = self.asn1("IP", [n for n in names if re.match("^\d", n)])
         prelude = undent("""
             subjectAltName = @alt_names
             [alt_names]
@@ -41,8 +45,7 @@ class Config:
             default_md = sha256
             prompt = no
             [dn]
-            {dn}
-            CN = {self.subject}
+            {dn}CN = {self.subject}
             [v3_req]
             keyUsage = keyEncipherment, dataEncipherment
             extendedKeyUsage = serverAuth
