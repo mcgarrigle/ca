@@ -17,52 +17,49 @@ class Config:
         self.is_san  = len(names) > 0
 
     def san(self):
-        sans = list(enumerate(self.names, 1))
-        dns = [f"DNS.{i} = {n}" for i,n in sans if re.match("^\D", n)]
-        ips = [f"IP.{i} = {n}" for i,n in sans if re.match("^\d", n)]
-        return "\n".join(dns + ips)
+        names = list(enumerate(self.names, 1))
+        dns = [f"DNS.{i} = {n}" for i,n in names if re.match("^\D", n)]
+        ips = [f"IP.{i} = {n}" for i,n in names if re.match("^\d", n)]
+        prelude = undent("""
+            subjectAltName = @alt_names
+            [alt_names]
+            """)
+        return prelude + ("\n".join(dns + ips))
 
     def text(self):
         with open(os.path.join(ROOT, 'dn.conf'), 'r') as f:
             dn = f.read()
         if self.is_san:
-            block = self.san()
+            san = self.san()
         else:
-            block = ""
+            san = ""
+        block = undent(f"""
+            [req]
+            distinguished_name = dn
+            req_extensions = v3_req
+            default_bits = 2048
+            default_md = sha256
+            prompt = no
+            [dn]
+            {dn}
+            CN = {self.subject}
+            [v3_req]
+            keyUsage = keyEncipherment, dataEncipherment
+            extendedKeyUsage = serverAuth
+            {san}
+            """)
         return block
 
-def xconfig(subject, names):
-    with open(os.path.join(ROOT, 'dn.conf'), 'r') as f:
-        dn = f.read()
-    sans = list(enumerate(names, 1))
-    dns = [f"DNS.{i} = {n}" for i,n in sans if re.match("^\D", n)]
-    ips = [f"IP.{i} = {n}" for i,n in sans if re.match("^\d", n)]
-    block = "\n".join(dns + ips)
-    text = undent(f"""
-        [req]
-        distinguished_name = dn
-        req_extensions = v3_req
-        default_bits = 2048
-        default_md = sha256
-        prompt = no
-        [dn]
-        {dn}
-        CN = {subject}
-        [v3_req]
-        keyUsage = keyEncipherment, dataEncipherment
-        extendedKeyUsage = serverAuth
-        subjectAltName = @alt_names
-        [alt_names]
-        {block}
-        """)
-    with open(f"{subject}.cnf", 'w') as f:
-      f.write(text)
+    def save(self):
+        text = self.text()
+        print(text)
+        with open(f"{self.subject}.cnf", 'w') as f:
+            f.write(text)
 
 def key(subject):
     os.system(f"openssl genrsa -out {subject}.key 4096")
 
-def csr(subject, names):
-    config(subject, names)
+def csr(subject):
     os.system("openssl req"
              f" -new -nodes -sha256"
              f" -key {subject}.key"
@@ -83,9 +80,8 @@ subject = sys.argv[1]
 names = sys.argv[2:]
 
 config = Config(subject, names)
-print(config.text())
-exit(0)
+config.save()
 
 key(subject)
-csr(subject, names)
+csr(subject)
 sign(subject)
