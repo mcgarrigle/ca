@@ -9,7 +9,29 @@ ROOT = os.path.dirname(os.path.realpath(__file__))
 def undent(s):
   return re.sub('\n +','\n',s.lstrip())
 
-def config(subject, names):
+class Config:
+
+    def __init__(self, subject, names):
+        self.subject = subject
+        self.names   = names
+        self.is_san  = len(names) > 0
+
+    def san(self):
+        sans = list(enumerate(self.names, 1))
+        dns = [f"DNS.{i} = {n}" for i,n in sans if re.match("^\D", n)]
+        ips = [f"IP.{i} = {n}" for i,n in sans if re.match("^\d", n)]
+        return "\n".join(dns + ips)
+
+    def text(self):
+        with open(os.path.join(ROOT, 'dn.conf'), 'r') as f:
+            dn = f.read()
+        if self.is_san:
+            block = self.san()
+        else:
+            block = ""
+        return block
+
+def xconfig(subject, names):
     with open(os.path.join(ROOT, 'dn.conf'), 'r') as f:
         dn = f.read()
     sans = list(enumerate(names, 1))
@@ -59,6 +81,10 @@ def sign(subject):
 
 subject = sys.argv[1]
 names = sys.argv[2:]
+
+config = Config(subject, names)
+print(config.text())
+exit(0)
 
 key(subject)
 csr(subject, names)
